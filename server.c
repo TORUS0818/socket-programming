@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
     int receive_message_size, send_message_size;
     
     if (argc != 2) {
-        fprintf(stderr, "argument count missmatch.\n");
+        fprintf(stderr, "usage: ./server <port>\n");
         exit(EXIT_FAILURE);
     }
     if ((server_port = (unsigned short) atoi(argv[1])) == 0) {

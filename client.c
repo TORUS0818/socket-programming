@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     char receive_buffer[BUFFER_SIZE], send_buffer[BUFFER_SIZE];
 
     if (argc != 3) {
-        fprintf(stderr, "argument count missmatch.\n");
+        fprintf(stderr, "usage: ./client <hostname> <port>\n");
         exit(EXIT_FAILURE);
     }
     if (inet_aton(argv[1], &server_sa.sin_addr) == 0) {
