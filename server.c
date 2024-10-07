@@ -10,14 +10,14 @@
 #define MESSAGE_SIZE 1024
 #define BUFFER_SIZE (MESSAGE_SIZE + 1)
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     int client_sd;
     int server_sd;
-    int g;
-    char* service_name; 
+    int status;
+    char *service_name; 
     struct addrinfo hints;
-    struct addrinfo* ai0;
-    struct addrinfo* ai;
+    struct addrinfo *ai0;
+    struct addrinfo *ai;
     struct sockaddr_storage ss;
     unsigned int ss_len;
     char receive_buffer[BUFFER_SIZE];
@@ -35,9 +35,9 @@ int main(int argc, char* argv[]) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    g = getaddrinfo(NULL, service_name, &hints, &ai0);
-    if (g) {
-        fprintf(stderr, "%s", gai_strerror(g));
+    status = getaddrinfo(NULL, service_name, &hints, &ai0);
+    if (status) {
+        fprintf(stderr, "%s", gai_strerror(status));
         exit(EXIT_FAILURE);
     }
     

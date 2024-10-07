@@ -9,14 +9,14 @@
 #define MESSAGE_SIZE 1024
 #define BUFFER_SIZE (MESSAGE_SIZE + 1)
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     int sd;
-    int g;
-    char* node_name;
-    char* service_name; 
+    int status;
+    char *node_name;
+    char *service_name; 
     struct addrinfo hints;
-    struct addrinfo* ai0;
-    struct addrinfo* ai;
+    struct addrinfo *ai0;
+    struct addrinfo *ai;
     char receive_buffer[BUFFER_SIZE];
     char send_buffer[BUFFER_SIZE];
 
@@ -31,9 +31,9 @@ int main(int argc, char* argv[]) {
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    g = getaddrinfo(node_name, service_name, &hints, &ai0);
-    if (g) {
-        fprintf(stderr, "%s", gai_strerror(g));
+    status = getaddrinfo(node_name, service_name, &hints, &ai0);
+    if (status) {
+        fprintf(stderr, "%s", gai_strerror(status));
         exit(EXIT_FAILURE);
     }
     for (ai = ai0; ai; ai = ai->ai_next) {
