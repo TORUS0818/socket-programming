@@ -4,44 +4,57 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #define MESSAGE_SIZE 1024
 #define BUFFER_SIZE (MESSAGE_SIZE + 1)
 
 int main(int argc, char* argv[]) {
     int sd;
-    struct sockaddr_in server_sa;
-    unsigned short server_port;
-    char receive_buffer[BUFFER_SIZE], send_buffer[BUFFER_SIZE];
+    int g;
+    char* node_name;
+    char* service_name; 
+    struct addrinfo hints;
+    struct addrinfo* ai0;
+    struct addrinfo* ai;
+    char receive_buffer[BUFFER_SIZE];
+    char send_buffer[BUFFER_SIZE];
 
     if (argc != 3) {
         fprintf(stderr, "usage: ./client <hostname> <port>\n");
         exit(EXIT_FAILURE);
     }
-    if (inet_aton(argv[1], &server_sa.sin_addr) == 0) {
-        fprintf(stderr, "invalid IP address.\n");
-        exit(EXIT_FAILURE);
-    }
-    if ((server_port = (unsigned short) atoi(argv[2])) == 0) {
-        fprintf(stderr, "invalid port number.\n");
-        exit(EXIT_FAILURE);
-    }
+    node_name = argv[1];
+    service_name = argv[2];
 
-    memset(&server_sa, 0, sizeof(server_sa));
-    server_sa.sin_family = AF_INET;
-    server_sa.sin_port = htons(server_port);
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-    // socket
-    if ((sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        perror("socket() failed.\n");
+    g = getaddrinfo(node_name, service_name, &hints, &ai0);
+    if (g) {
+        fprintf(stderr, "%s", gai_strerror(g));
         exit(EXIT_FAILURE);
     }
-    // connect
-    if (connect(sd, (struct sockaddr*) &server_sa, sizeof(server_sa))) {
-        perror("connect() failed.\n");
+    for (ai = ai0; ai; ai = ai->ai_next) {
+        // socket
+        sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+        if (sd < 0) {
+            continue;
+        }
+        // connect
+        if (connect(sd, ai->ai_addr, ai->ai_addrlen)) {
+            close(sd);
+            sd = -1;
+            continue;
+        }
+        break;
+    }
+    if (sd < 0) {
+        fprintf(stderr, "cannot connect %s.\n", node_name);
         exit(EXIT_FAILURE);
     }
-    printf("connect to %s.\n", inet_ntoa(server_sa.sin_addr));
+    printf("connect to %s.\n", node_name);
     
     while(1) {
         printf("please enter the characters: ");

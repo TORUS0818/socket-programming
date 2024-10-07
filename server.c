@@ -4,57 +4,76 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #define QUEUE_LIMIT 5
 #define MESSAGE_SIZE 1024
 #define BUFFER_SIZE (MESSAGE_SIZE + 1)
 
 int main(int argc, char* argv[]) {
-    int client_sd, server_sd; 
-    struct sockaddr_in client_sa, server_sa;
-    unsigned short server_port;
-    unsigned int client_len;
+    int client_sd;
+    int server_sd;
+    int g;
+    char* service_name; 
+    struct addrinfo hints;
+    struct addrinfo* ai0;
+    struct addrinfo* ai;
+    struct sockaddr_storage ss;
+    unsigned int ss_len;
     char receive_buffer[BUFFER_SIZE];
-    int receive_message_size, send_message_size;
+    int receive_message_size;
+    int send_message_size;
     
     if (argc != 2) {
         fprintf(stderr, "usage: ./server <port>\n");
         exit(EXIT_FAILURE);
     }
-    if ((server_port = (unsigned short) atoi(argv[1])) == 0) {
-        fprintf(stderr, "invalid port number.\n");
-        exit(EXIT_FAILURE);
-    }
-    // socket
-    if ((server_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        perror("socket() failed.\n");
+    service_name = argv[1];
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    g = getaddrinfo(NULL, service_name, &hints, &ai0);
+    if (g) {
+        fprintf(stderr, "%s", gai_strerror(g));
         exit(EXIT_FAILURE);
     }
     
-    memset(&server_sa, 0, sizeof(server_sa));
-    server_sa.sin_family = AF_INET;
-    server_sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_sa.sin_port = htons(server_port);
-
-    // bind
-    if (bind(server_sd, (struct sockaddr*) &server_sa, sizeof(server_sa)) < 0) {
-        perror("bind() failed.\n");
-        exit(EXIT_FAILURE);
+    for (ai = ai0; ai; ai = ai->ai_next) {
+        // socket
+        server_sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+        if (server_sd < 0) {
+            continue;
+        }
+        // bind
+        if (bind(server_sd, ai->ai_addr, ai->ai_addrlen) < 0) {
+            perror("bind() failed.\n");
+            close(server_sd);
+            continue;
+        }
+        //listen
+        if (listen(server_sd, QUEUE_LIMIT) < 0) {
+            perror("listen() failed.\n");
+            close(server_sd);
+            continue;
+        }
+        break;
     }
-    // listen
-    if (listen(server_sd, QUEUE_LIMIT) < 0) {
-        perror("listen() failed.\n");
+
+    if (server_sd < 0) {
+        fprintf(stderr, "cannot create server socket.\n");
         exit(EXIT_FAILURE);
     }
     
     while(1) {
         // accept
-        if ((client_sd = accept(server_sd, (struct sockaddr*) &client_sa, &client_len)) < 0) {
+        if ((client_sd = accept(server_sd, (struct sockaddr*) &ss, &ss_len)) < 0) {
             perror("accept() failed.\n");
             exit(EXIT_FAILURE);
         }
-        printf("connected from %s.\n", inet_ntoa(client_sa.sin_addr));
-
+        
         while(1) {
             //recv
             if ((receive_message_size = recv(client_sd, receive_buffer, BUFFER_SIZE, 0)) < 0) {
