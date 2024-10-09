@@ -6,9 +6,10 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "common.h"
+
 #define QUEUE_LIMIT 5
-#define MESSAGE_SIZE 1024
-#define BUFFER_SIZE (MESSAGE_SIZE + 1)
+#define BUFFER_SIZE 1024
 
 int main(int argc, char *argv[]) {
     int client_sd;
@@ -20,9 +21,9 @@ int main(int argc, char *argv[]) {
     struct addrinfo *ai;
     struct sockaddr_storage ss;
     unsigned int ss_len;
-    char receive_buffer[BUFFER_SIZE];
-    int receive_message_size;
     int send_message_size;
+    int receive_message_size;
+    char receive_buffer[BUFFER_SIZE];
     
     if (argc != 2) {
         fprintf(stderr, "usage: ./server <port>\n");
@@ -61,7 +62,6 @@ int main(int argc, char *argv[]) {
         }
         break;
     }
-
     if (server_sd < 0) {
         fprintf(stderr, "cannot create server socket.\n");
         exit(EXIT_FAILURE);
@@ -73,28 +73,24 @@ int main(int argc, char *argv[]) {
             perror("accept() failed.\n");
             exit(EXIT_FAILURE);
         }
-        
+
         while(1) {
             //recv
-            if ((receive_message_size = recv(client_sd, receive_buffer, BUFFER_SIZE, 0)) < 0) {
-                perror("recv() failed.\n");
-                exit(EXIT_FAILURE);
-            } else if(receive_message_size == 0) {
-                fprintf(stderr, "connection has already closed.\n");
+            receive_message_size = receive_all(client_sd, receive_buffer, BUFFER_SIZE);
+            if (receive_message_size == 0) {
+                printf("connection has already closed.\n");
                 break;
             }
             //send
-            if ((send_message_size = send(client_sd, receive_buffer, receive_message_size, 0)) < 0) {
-                perror("send() failed.\n");
-                exit(EXIT_FAILURE);
-            } else if(send_message_size == 0) {
-                fprintf(stderr, "connection has already closed.\n");
+            send_message_size = send_all(client_sd, receive_buffer, receive_message_size);
+            if(send_message_size == 0) {
+                printf("connection has already closed.\n");
                 break;
             }
         }
         close(client_sd);
     }
     close(server_sd);
-
+    
     return EXIT_SUCCESS;
 }

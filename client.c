@@ -6,8 +6,9 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#define MESSAGE_SIZE 1024
-#define BUFFER_SIZE (MESSAGE_SIZE + 1)
+#include "common.h"
+
+#define BUFFER_SIZE 1024
 
 int main(int argc, char *argv[]) {
     int sd;
@@ -17,6 +18,7 @@ int main(int argc, char *argv[]) {
     struct addrinfo hints;
     struct addrinfo *ai0;
     struct addrinfo *ai;
+    int receive_message_size;
     char receive_buffer[BUFFER_SIZE];
     char send_buffer[BUFFER_SIZE];
 
@@ -36,6 +38,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s", gai_strerror(status));
         exit(EXIT_FAILURE);
     }
+
     for (ai = ai0; ai; ai = ai->ai_next) {
         // socket
         sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
@@ -59,39 +62,26 @@ int main(int argc, char *argv[]) {
     while(1) {
         printf("please enter the characters: ");
         if (fgets(send_buffer, BUFFER_SIZE, stdin) == NULL) {
-            fprintf(stderr, "invalid input.\n");
-            exit(EXIT_FAILURE);
+            if (feof(stdin)) {
+                printf("end of input detected (EOF).\n");
+                break;
+            } else {
+                perror("error reading from stdin");
+                exit(EXIT_FAILURE);
+            }
         }
         // send
-        if (send(sd, send_buffer, strlen(send_buffer), 0) <= 0) {
-            perror("send() failed.\n");
-            exit(EXIT_FAILURE);
+        send_all(sd, send_buffer, strlen(send_buffer));
+        // receive
+        receive_message_size = receive_all(sd, receive_buffer, BUFFER_SIZE);
+        if (receive_message_size == 0) {
+            printf("server disconnected.\n");
+            break;
         }
-
-        int received_byte = 0;
-        int current_byte = 0;
-        while(current_byte < BUFFER_SIZE) {
-            // recv
-            received_byte = recv(sd, &receive_buffer[current_byte], 1, 0);
-            if (received_byte < 0) {
-                perror("recv() failed.\n");
-                exit(EXIT_FAILURE);
-            } else if (received_byte == 0) {
-                perror("ERR_EMPTY_RESPONSE");
-                exit(EXIT_FAILURE);
-            }
-
-            if (receive_buffer[current_byte] == '\n') {
-                receive_buffer[current_byte] = '\0';
-                if (strcmp(receive_buffer, "quit") == 0) {
-                    close(sd);
-                    return EXIT_SUCCESS;
-                }
-                break;
-            }
-            current_byte += received_byte;
-        }
+        receive_buffer[receive_message_size] = '\0';
         printf("received from server: %s\n", receive_buffer);
     }
+    close(sd);
+
     return EXIT_SUCCESS;
 }
