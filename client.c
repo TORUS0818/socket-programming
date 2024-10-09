@@ -11,7 +11,7 @@
 #define BUFFER_SIZE 1024
 
 int main(int argc, char *argv[]) {
-    int sd;
+    int s;
     int status;
     char *node_name;
     char *service_name; 
@@ -41,19 +41,19 @@ int main(int argc, char *argv[]) {
 
     for (ai = ai0; ai; ai = ai->ai_next) {
         // socket
-        sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-        if (sd < 0) {
+        s = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+        if (s < 0) {
             continue;
         }
         // connect
-        if (connect(sd, ai->ai_addr, ai->ai_addrlen)) {
-            close(sd);
-            sd = -1;
+        if (connect(s, ai->ai_addr, ai->ai_addrlen)) {
+            close(s);
+            s = -1;
             continue;
         }
         break;
     }
-    if (sd < 0) {
+    if (s < 0) {
         fprintf(stderr, "cannot connect %s.\n", node_name);
         exit(EXIT_FAILURE);
     }
@@ -71,9 +71,9 @@ int main(int argc, char *argv[]) {
             }
         }
         // send
-        send_all(sd, send_buffer, strlen(send_buffer));
+        send_all(s, send_buffer, strlen(send_buffer));
         // receive
-        receive_message_size = receive_all(sd, receive_buffer, BUFFER_SIZE);
+        receive_message_size = receive_all(s, receive_buffer, BUFFER_SIZE);
         if (receive_message_size == 0) {
             printf("server disconnected.\n");
             break;
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
         receive_buffer[receive_message_size] = '\0';
         printf("received from server: %s\n", receive_buffer);
     }
-    close(sd);
+    close(s);
 
     return EXIT_SUCCESS;
 }
