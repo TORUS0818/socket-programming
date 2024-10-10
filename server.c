@@ -66,6 +66,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "cannot create server socket.\n");
         exit(EXIT_FAILURE);
     }
+    freeaddrinfo(ai0);
     
     while(1) {
         // accept
@@ -91,6 +92,6 @@ int main(int argc, char *argv[]) {
         close(client_sd);
     }
     close(server_sd);
-    
+
     return EXIT_SUCCESS;
 }

@@ -58,6 +58,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     printf("connect to %s.\n", node_name);
+    freeaddrinfo(ai0);
     
     while(1) {
         printf("please enter the characters: ");
